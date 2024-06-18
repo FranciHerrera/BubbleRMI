@@ -1,5 +1,7 @@
 package clientes;
 
+import implementaciones.ExeServ;
+import implementaciones.ForkJoin;
 import implementaciones.Secuencial;
 import interfaces.SortArray;
 import java.awt.Graphics;
@@ -11,6 +13,8 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -23,11 +27,13 @@ import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 
 public class FrameCliente extends JFrame implements ActionListener {
 
-    JButton btnSec, btnFork, btnExec, btnBorr, btnGenArr, btnSendArr;
-    JTextArea txtOrig, txtRes, txtTam, txtRan;
-    JScrollPane spOrig, spRes;
-    JLabel lbOrig, lbRes, lbTam, lbRan, lbTimeSec, lbTimeFork, lbTimeExec;
+    JButton btnSec, btnFork, btnExec, btnBorr, btnGenArr, btnSendArr, btnComb;
+    JTextArea txtOrig, txtComb, txtRes, txtTam, txtRan;
+    JScrollPane spOrig, spRes, spComb;
+    JLabel lbOrig, lbComb, lbRes, lbTam, lbRan, lbTimeSec, lbTimeFork, lbTimeExec;
     Secuencial s;
+    ForkJoin f;
+    ExeServ ex;
 
     // RMI related fields
     private SortArray sortArrayService;
@@ -78,10 +84,18 @@ public class FrameCliente extends JFrame implements ActionListener {
         txtRes = new JTextArea();
         txtRes.setLineWrap(true);
         spRes = new JScrollPane(txtRes);
-        spRes.setBounds(320, 10, 200, 100);
+        spRes.setBounds(430, 10, 200, 100);
 
         lbRes = new JLabel("Resultado");
-        lbRes.setBounds(320, 101, 100, 50);
+        lbRes.setBounds(430, 101, 100, 50);
+
+        txtComb = new JTextArea();
+        txtComb.setLineWrap(true);
+        spComb = new JScrollPane(txtComb);
+        spComb.setBounds(220, 10, 200, 100);
+
+        lbComb = new JLabel("Combinado");
+        lbComb.setBounds(220, 101, 100, 50);
 
         txtTam = new JTextArea("50");
         txtTam.setBounds(100, 150, 100, 50);
@@ -94,12 +108,16 @@ public class FrameCliente extends JFrame implements ActionListener {
         lbRan.setBounds(10, 230, 100, 50);
 
         btnGenArr = new JButton("Generar Arreglo");
-        btnGenArr.setBounds(300, 180, 150, 40);
+        btnGenArr.setBounds(200, 180, 150, 40);
         btnGenArr.addActionListener(this);
 
         btnSendArr = new JButton("Enviar Arreglo");
-        btnSendArr.setBounds(500, 180, 120, 40);
+        btnSendArr.setBounds(400, 180, 120, 40);
         btnSendArr.addActionListener(this);
+
+        btnComb = new JButton("Obtener Arreglo");
+        btnComb.setBounds(550, 180, 150, 40);
+        btnComb.addActionListener(this);
 
         BackgroundPanel backgroundPanel = new BackgroundPanel("Bubbles.png");
         backgroundPanel.setLayout(null);
@@ -118,12 +136,16 @@ public class FrameCliente extends JFrame implements ActionListener {
 
         this.add(btnBorr);
         this.add(btnSendArr);
+        this.add(btnComb);
 
         this.add(spOrig);
         this.add(lbOrig);
 
         this.add(spRes);
         this.add(lbRes);
+
+        this.add(spComb);
+        this.add(lbComb);
 
         this.add(txtTam);
         this.add(lbTam);
@@ -134,8 +156,8 @@ public class FrameCliente extends JFrame implements ActionListener {
         this.setVisible(true);
 
         try {
-            sortArrayService = (SortArray) Naming.lookup("//localhost/BubbleSortService");
-            //sortArrayService = (SortArray) Naming.lookup("//25.64.149.38/BubbleSortService");
+            //sortArrayService = (SortArray) Naming.lookup("//localhost/BubbleSortService");
+            sortArrayService = (SortArray) Naming.lookup("//25.64.149.38/BubbleSortService");
             clientId = sortArrayService.registerClient();
             System.out.println("Registrado como cliente: " + clientId);
         } catch (Exception ex) {
@@ -157,6 +179,8 @@ public class FrameCliente extends JFrame implements ActionListener {
             ordenarArregloExecutor();
         } else if (e.getSource() == btnBorr) {
             borrarArreglo();
+        } else if (e.getSource() == btnComb) {
+            obtenerArreglo();
         }
     }
 
@@ -172,73 +196,44 @@ public class FrameCliente extends JFrame implements ActionListener {
         }
     }
 
-    private void ordenarArregloSecuencial() {
-        //enviarArreglo();
+    private void obtenerArreglo() {
         try {
-            if (sortArrayService.allClientsSentArrays()) {
-
-                long startTime = System.nanoTime();
-
-                int[] sortedArray = sortArrayService.getSortedArrayBySecuencial();
-
-                long endTime = System.nanoTime();
-                double duration = (endTime - startTime) / 1e6;
-                lbTimeSec.setText("Tiempo Secuencial: " + duration + " ms");
-
-                txtRes.setText(Arrays.toString(sortedArray));
-                System.out.println("Arreglos recibidos");
-            } else {
-                System.out.println("Esperando a los demas clientes...");
-            }
+            int[] arregloCombinado = sortArrayService.getArray();
+            txtComb.setText(Arrays.toString(arregloCombinado));
+            arreglo = arregloCombinado;
         } catch (RemoteException ex) {
-            ex.printStackTrace();
+            Logger.getLogger(FrameCliente.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private void ordenarArregloSecuencial() {
+        s = new Secuencial(arreglo);
+        long startTime = System.nanoTime();
+        s.ordenar();
+        long endTime = System.nanoTime();
+        double duration = (endTime - startTime) / 1e6;
+        lbTimeSec.setText("Tiempo Secuencial: " + duration + " ms");
+        txtRes.setText(s.obtenerArreglo());
     }
 
     private void ordenarArregloFork() {
-        //enviarArreglo();
-        try {
-            if (sortArrayService.allClientsSentArrays()) {
-
-                long startTime = System.nanoTime();
-
-                int[] sortedArray = sortArrayService.getSortedArrayByFork();
-
-                long endTime = System.nanoTime();
-                double duration = (endTime - startTime) / 1e6;
-                lbTimeFork.setText("Tiempo Fork: " + duration + " ms");
-
-                txtRes.setText(Arrays.toString(sortedArray));
-                System.out.println("Arreglos ordenados");
-            } else {
-                System.out.println("Esperando a los demás clientes...");
-            }
-        } catch (RemoteException ex) {
-            ex.printStackTrace();
-        }
+        f = new ForkJoin(arreglo);
+        long startTime = System.nanoTime();
+        f.ordenar();
+        long endTime = System.nanoTime();
+        double duration = (endTime - startTime) / 1e6;
+        lbTimeFork.setText("Tiempo Fork: " + duration + " ms");
+        txtRes.setText(f.obtenerArreglo());
     }
 
     private void ordenarArregloExecutor() {
-        //enviarArreglo();
-        try {
-            if (sortArrayService.allClientsSentArrays()) {
-
-                long startTime = System.nanoTime();
-
-                int[] sortedArray = sortArrayService.getSortedArrayByExecutor();
-
-                long endTime = System.nanoTime();
-                double duration = (endTime - startTime) / 1e9;
-                lbTimeExec.setText("Tiempo Executor: " + duration + " ms");
-
-                txtRes.setText(Arrays.toString(sortedArray));
-                System.out.println("Arreglos ordenados");
-            } else {
-                System.out.println("Esperando a los demás clientes...");
-            }
-        } catch (RemoteException ex) {
-            ex.printStackTrace();
-        }
+        ex = new ExeServ(arreglo);
+        long startTime = System.nanoTime();
+        ex.ordenar();
+        long endTime = System.nanoTime();
+        double duration = (endTime - startTime) / 1e9;
+        lbTimeExec.setText("Tiempo Executor: " + duration + " ms");
+        txtRes.setText(ex.obtenerArreglo());
     }
 
     public void generarArreglo() {
@@ -254,6 +249,7 @@ public class FrameCliente extends JFrame implements ActionListener {
 
     private void borrarArreglo() {
         txtOrig.setText("");
+        txtComb.setText("");
         txtRes.setText("");
     }
 }

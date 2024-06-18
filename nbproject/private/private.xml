@@ -5,6 +5,8 @@
         <group>
             <file>file:/C:/Users/RS/Desktop/NetBeansProjectsParcial3/BubbleRMI/src/clientes/SortClientGUI.java</file>
             <file>file:/C:/Users/RS/Desktop/NetBeansProjectsParcial3/BubbleRMI/src/servidor/Server.java</file>
+            <file>file:/C:/Users/RS/Desktop/NetBeansProjectsParcial3/BubbleRMI/src/interfaces/SortArray.java</file>
+            <file>file:/C:/Users/RS/Desktop/NetBeansProjectsParcial3/BubbleRMI/src/implementaciones/SortArrayImpl.java</file>
             <file>file:/C:/Users/RS/Desktop/NetBeansProjectsParcial3/BubbleRMI/src/clientes/FrameCliente.java</file>
         </group>
     </open-files>
